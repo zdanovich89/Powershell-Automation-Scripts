@@ -1,0 +1,87 @@
+trigger: none
+
+schedules:
+  - cron: '0 9  1,15 * *'
+    displayName: Every 1th and 15th day at 11:00 AM
+    branches:
+      include:
+        - master
+    always: true
+
+jobs:
+  - job: createBackupAndRemovePackagesOrganizationLevel
+    displayName: Create Artifacts backup and remove old versions for organization level
+    timeoutInMinutes: 180
+    pool:
+      vmImage: windows-latest
+
+    steps:
+
+      - task: AzurePowerShell@5
+        displayName: Backup and Remove
+        inputs:
+          azureSubscription: '********'
+          ScriptType: 'FilePath'
+          ScriptPath: 'Nsure.CommonScripts.DeleteOldArtifacts/backupAndRemovePackagesFunc.ps1'
+          azurePowerShellVersion: 'LatestVersion'
+        env:
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          ORGANIZATION: NsureInc
+          FEEDID: ********
+          BACKUPDIRECTORY: $(Build.ArtifactStagingDirectory)/Backup
+
+
+      - task: PublishPipelineArtifact@1
+        displayName: Publish pipeline Artifact
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/Backup'
+          artifactName: 'PackageBackups_Org'
+          publishLocation: 'pipeline'
+      
+      - task: AzureFileCopy@5
+        displayName: Upload Artifact version to Azure storage 
+        inputs:
+          SourcePath: '$(Build.ArtifactStagingDirectory)/Backup/*'
+          azureSubscription: '********'
+          Destination: 'AzureBlob'
+          storage: 'stsharedresdevnsure01'
+          ContainerName: 'artifactsbackuporg'
+          CleanTargetBeforeCopy: true
+
+  - job: createBackupAndRemovePackagesProjectLevel 
+    displayName: Create Artifacts backup and remove old versions for project level
+    timeoutInMinutes: 180
+    pool:
+      vmImage: windows-latest
+
+    steps:
+      - task: AzurePowerShell@5
+        displayName: Backup and Remove
+        inputs:
+          azureSubscription: '*********'
+          ScriptType: 'FilePath'
+          ScriptPath: 'Nsure.CommonScripts.DeleteOldArtifacts/backupAndRemovePackagesFunc.ps1'
+          azurePowerShellVersion: 'LatestVersion'
+        env:
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+          ORGANIZATION: NsureInc
+          PROJECT: Nsure
+          FEEDID: *********
+          BACKUPDIRECTORY: $(Build.ArtifactStagingDirectory)/Backup
+
+      - task: PublishPipelineArtifact@1
+        displayName: Publish pipeline Artifact
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/Backup'
+          artifactName: 'PackageBackups_Proj'
+          publishLocation: 'pipeline'
+      
+      - task: AzureFileCopy@5
+        displayName: Upload Artifact version to Azure storage 
+        inputs:
+          SourcePath: '$(Build.ArtifactStagingDirectory)/Backup/*'
+          azureSubscription: '********'
+          Destination: 'AzureBlob'
+          storage: 'stsharedresdevnsure01'
+          ContainerName: 'artifactsbackupproj'
+          CleanTargetBeforeCopy: true  
