@@ -1,0 +1,30 @@
+trigger: none
+
+parameters:
+- name: organization
+  type: string
+  default: 'NsureInc'
+- name: project
+  type: string
+  default: 'Nsure'
+- name: build_id
+  type: string
+
+pool:
+  vmImage: 'windows-latest'
+
+jobs:
+- job: DeleteRetentionLeases
+  displayName: 'Delete Retention Leases'
+  pool:
+    vmImage: 'windows-latest'
+  steps:
+    - powershell: |
+        # Run your script with parameters directly
+        .\Nsure.CommonScripts.RemoveRetentionLeases\removeRetentionLeases.ps1 -organization $env:organization -project $env:project -buildId $env:build_id
+      displayName: 'Run PowerShell Script'
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+        organization: ${{ parameters.organization }}
+        project: ${{ parameters.project }}
+        build_id: ${{ parameters.build_id }}
